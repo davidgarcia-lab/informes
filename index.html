@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#285344">
+  <meta name="description" content="Registra una visita domiciliaria y genera tu informe de promotor de Pensión 65. Datos procesados exclusivamente en tu navegador.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+  <title>Generador de informes de promotores - Programa Pensión 65</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="print-layout.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 3h7l4 4v14H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h1Z"/><path d="M14 3v5h4M8 12h7M8 16h7"/></svg></div>
+      <div class="header-copy"><p class="eyebrow">HERRAMIENTA DE TRABAJO</p><h1>GENERADOR DE INFORMES DE PROMOTORES <span>- PROGRAMA PENSIÓN 65</span></h1></div>
+      <span class="private-badge"><span aria-hidden="true"></span>Datos solo en tu navegador</span>
+    </div>
+  </header>
+  <main class="main">
+    <p class="intro">Completa los datos de la visita y obtén tu informe listo para Word.</p>
+    <section class="card form-card" aria-labelledby="form-title">
+      <div class="section-heading"><div class="section-title"><span class="step" aria-hidden="true">01</span><h2 id="form-title">DATOS DEL PROMOTOR</h2></div><span class="required-note">Campos con * obligatorios</span></div>
+      <form id="visit-form" novalidate autocomplete="off">
+        <div id="validation-summary" class="validation-summary" role="alert" tabindex="-1" hidden></div>
+        <div class="form-grid">
+          <div class="field span-2"><label for="promoter">Nombre del promotor <span>*</span></label><select id="promoter" name="promoter" required aria-describedby="promoter-error"><option value="">Seleccione al promotor</option><option value="ALVAREZ ZARATE, ABEL">ALVAREZ ZARATE, ABEL</option><option value="CARDENAS ASTUPILLO, MARLINI YUDI">CARDENAS ASTUPILLO, MARLINI YUDI</option></select><span class="field-error" id="promoter-error"></span></div>
+          <div class="field span-2 signature-field"><label for="signature">Firma del promotor (opcional)</label><input id="signature" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="signature-help signature-status" disabled><span id="signature-help" class="field-help">Seleccione al promotor y cargue una imagen PNG, JPG o WebP, de hasta 2 MB.</span><span id="signature-status" class="field-help" role="status"></span><div id="signature-preview-wrap" class="signature-preview-wrap" hidden><img id="signature-preview" alt="Vista previa de la firma"><button type="button" id="remove-signature" class="button button-quiet">QUITAR FIRMA</button></div></div>
+          <div class="field"><label for="reportNumber">Número de informe <span>*</span></label><input id="reportNumber" name="reportNumber" type="text" placeholder="Ej. 025-2026" required aria-describedby="reportNumber-error"><span class="field-error" id="reportNumber-error"></span></div>
+          <div class="field"><label for="fileNumber">Número de expediente <span>*</span></label><input id="fileNumber" name="fileNumber" type="text" placeholder="Número de expediente" required aria-describedby="fileNumber-error"><span class="field-error" id="fileNumber-error"></span></div>
+          <div class="field span-2"><label for="fullName">Nombre completo del potencial usuario <span>*</span></label><input id="fullName" name="fullName" type="text" placeholder="Nombres y apellidos" required aria-describedby="fullName-error"><span class="field-error" id="fullName-error"></span></div>
+          <div class="field"><label for="dni">DNI <span>*</span></label><input id="dni" name="dni" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="8 dígitos" required aria-describedby="dni-error"><span class="field-error" id="dni-error"></span></div>
+          <div class="field"><label for="age">Edad <span>*</span></label><input id="age" name="age" type="number" inputmode="numeric" min="0" step="1" placeholder="Años cumplidos" required aria-describedby="age-error"><span class="field-error" id="age-error"></span></div>
+          <div class="field"><label for="reportDate">Fecha del informe <span>*</span></label><div class="date-input"><input id="reportDate" name="reportDate" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" required aria-describedby="reportDate-error"><button type="button" class="calendar-trigger" data-date="reportDate" aria-label="Elegir fecha del informe" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></button></div><span class="field-error" id="reportDate-error"></span></div>
+          <div class="field visit-date"><label for="visitDate">Fecha de visita domiciliaria <span>*</span></label><div class="date-input"><input id="visitDate" name="visitDate" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" required aria-describedby="visitDate-error"><button type="button" class="calendar-trigger" data-date="visitDate" aria-label="Elegir fecha de visita domiciliaria" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></button></div><span class="field-error" id="visitDate-error"></span></div>
+          <div class="field"><label for="settlement">Centro poblado <span>*</span></label><input id="settlement" name="settlement" type="text" placeholder="Nombre del centro poblado" required aria-describedby="settlement-error"><span class="field-error" id="settlement-error"></span></div>
+          <div class="field"><label for="district">Distrito <span>*</span></label><input id="district" name="district" type="text" placeholder="Nombre del distrito" required aria-describedby="district-error"><span class="field-error" id="district-error"></span></div>
+          <div class="field"><label for="province">Provincia <span>*</span></label><input id="province" name="province" type="text" placeholder="Nombre de la provincia" required aria-describedby="province-error"><span class="field-error" id="province-error"></span></div>
+          <div class="field span-2 combo-field"><label for="vulnerability">Vulnerabilidad identificada - SISOPE <span>*</span></label>
+            <div class="combo-wrap"><input id="vulnerability" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="vulnerability-list" aria-required="true" placeholder="Buscar y seleccionar vulnerabilidad" aria-describedby="vulnerability-error" autocomplete="off"><button type="button" id="combo-toggle" aria-label="Mostrar vulnerabilidades SISOPE" tabindex="-1"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 7 5 5 5-5"/></svg></button><div id="vulnerability-list" role="listbox" aria-label="Vulnerabilidades SISOPE" hidden></div></div>
+            <span class="field-error" id="vulnerability-error"></span><div id="selection-meta" class="selection-meta" hidden></div>
+          </div>
+          <div class="field span-2"><label for="recommendation">Recomendación <span>*</span></label><select id="recommendation" name="recommendation" required aria-describedby="recommendation-error"><option value="">Seleccione la recomendación</option><option value="priorizar">Priorizar</option><option value="no-priorizar">No priorizar</option></select><span class="field-error" id="recommendation-error"></span></div>
+          <div class="field full-width"><div class="facts-label"><label for="facts">Hechos observados durante la visita <span>*</span></label><span>Se incluirán sin modificaciones en el informe</span></div><textarea id="facts" name="facts" rows="4" placeholder="Describa las condiciones de vivienda, salud, alimentación, ingresos, convivencia y otras situaciones observadas en campo." required aria-describedby="facts-error" spellcheck="false"></textarea><span class="field-error" id="facts-error"></span></div>
+        </div>
+        <div class="form-footer"><p><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 2 4 4v5c0 4 6 8 6 8s6-4 6-8V4l-6-2Z"/><path d="m7 9 2 2 4-4"/></svg>Los datos permanecen en esta pestaña y no se envían a servidores.</p><button type="button" id="clear-button" class="button button-quiet">LIMPIAR FORMULARIO</button></div>
+      </form>
+    </section>
+    <section class="card report-card" aria-labelledby="report-title">
+      <div class="section-heading report-heading"><div class="section-title"><span class="step" aria-hidden="true">02</span><h2 id="report-title">INFORME GENERADO</h2></div><span id="completion-state" class="completion-state">Completa los datos</span></div>
+      <div class="report-workspace"><table class="print-frame" role="presentation"><thead aria-hidden="true"><tr><td class="print-spacer"></td></tr></thead><tbody><tr><td class="print-content"><article id="report-document" class="report-document" aria-label="Informe generado"></article></td></tr></tbody><tfoot aria-hidden="true"><tr><td class="print-spacer"></td></tr></tfoot></table></div>
+      <div class="report-toolbar"><div class="report-feedback"><p id="action-status" role="status" aria-live="polite">El informe se actualiza mientras escribes.</p><p id="pdf-filename" class="pdf-filename" hidden></p></div><div class="actions"><button type="button" class="button button-secondary" id="print-button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 7V2h10v5M5 14H3V7h14v7h-2M5 11h10v7H5z"/></svg>IMPRIMIR INFORME</button><button type="button" class="button button-primary" id="copy-button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="6" y="6" width="11" height="12" rx="1"/><path d="M13 6V2H2v12h4"/></svg>COPIAR INFORME</button></div></div>
+    </section>
+    <footer class="site-footer">Pensión 65 <span aria-hidden="true">·</span> Informes de visitas domiciliarias</footer>
+  </main>
+  <div id="print-pages" class="print-pages" aria-hidden="true"></div>
+  <div id="calendar" class="calendar" role="dialog" aria-label="Seleccionar fecha" hidden><div class="calendar-head"><button type="button" id="previous-month" aria-label="Mes anterior">‹</button><div class="calendar-selects"><select id="calendar-month" aria-label="Mes"></select><input id="calendar-year" type="number" aria-label="Año" min="1" max="9999" inputmode="numeric"></div><button type="button" id="next-month" aria-label="Mes siguiente">›</button></div><div class="weekdays" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div id="calendar-days" class="calendar-days"></div><div class="calendar-footer"><button type="button" id="calendar-today">Hoy</button><button type="button" id="calendar-close">Cerrar</button></div></div>
+</body>
+</html>

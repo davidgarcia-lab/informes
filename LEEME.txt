@@ -1,0 +1,29 @@
+GENERADOR DE INFORMES DE PROMOTORES - PROGRAMA PENSIÓN 65
+
+USO
+1. Extraiga esta carpeta del archivo ZIP.
+2. Abra index.html en un navegador actualizado.
+3. Complete el formulario para generar, copiar o imprimir el informe.
+
+ARCHIVOS
+index.html       Formulario y estructura de la aplicación.
+styles.css       Diseño de pantalla, encabezado alineado y formato A4.
+app.js           Formulario, listado SISOPE, validaciones, firma y generación del informe.
+print-layout.js  Distribución de páginas, encabezado y numeración Página X de Y.
+icon.svg         Icono de la aplicación.
+
+EJECUCIÓN CON SERVIDOR LOCAL (OPCIONAL)
+Si su navegador restringe alguna función al abrir el archivo directamente,
+abra una terminal en esta carpeta y ejecute:
+
+python -m http.server 8000
+
+Luego abra http://localhost:8000 en su navegador.
+También puede publicar todos los archivos juntos en un alojamiento web estático con HTTPS.
+No requiere instalación de paquetes, compilación ni base de datos.
+
+DATOS
+El formulario y la firma se procesan en el navegador. Los datos de una visita
+no forman parte de estos archivos exportados ni se envían a servidores.
+La impresión incluye el expediente, el encabezado institucional, la firma opcional
+y la numeración de páginas. Al guardar como PDF se propone el nombre del informe.
