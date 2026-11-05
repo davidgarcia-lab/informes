@@ -79,6 +79,11 @@
     else {
       const blocks=Array.from(source.children).filter(node=>!node.classList.contains('report-letterhead'));
       blocks.forEach((block,index)=>{
+        if (block.classList.contains('report-annex')) {
+          newPage();
+          content.append(block.cloneNode(true));
+          return;
+        }
         // A recommendation heading must have room for at least the first line below it.
         if(block.classList.contains('report-recommendations') && content.childNodes.length){
           const probe=block.cloneNode(true),line=document.createElement('p');line.textContent='Recomendación';content.append(probe,line);const needsPage=overflows();probe.remove();line.remove();if(needsPage)newPage();

@@ -37,6 +37,11 @@
   const storageKey = 'p65-promotor-visita-v1';
   let selected = null, attempted = false, storageAvailable = true;
   let signatureData = '', signatureFor = '', signatureLoadId = 0;
+  const photoSlots = Array.from({length:6}, () => ({data:'', original:'', turns:0, request:0, loading:false}));
+  const maxPhotoDataLength = 220000;
+  labels.evidenceCount = 'Evidencia fotográfica';
+  const includesEvidence = () => $('includeEvidence').value === 'yes';
+  const evidenceCount = () => includesEvidence() ? Number($('evidenceCount').value) : 0;
   const touched = new Set();
   const normalize = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const pad = num => String(num).padStart(2,'0');
@@ -59,6 +64,13 @@
     if ($('age').validity.badInput || ($('age').value && !/^\d+$/.test($('age').value))) result.age='Ingrese una edad válida en años enteros.';
     ['reportDate','visitDate'].forEach(id => { if ($(id).value && !parseDate($(id).value)) result[id]='Ingrese una fecha válida en formato dd/mm/yyyy.'; });
     if (!selected) result.vulnerability='Seleccione una vulnerabilidad del listado SISOPE.';
+    if (includesEvidence()) {
+      const count=evidenceCount();
+      const activePhotos=photoSlots.slice(0,count);
+      if (!count) result.evidenceCount='Seleccione cuántas fotos adjuntará.';
+      else if (activePhotos.some(photo=>photo.loading)) result.evidenceCount='Espere a que se carguen las fotos.';
+      else if (activePhotos.some(photo=>!photo.data)) result.evidenceCount='Adjunte las fotos que faltan para completar la cantidad seleccionada.';
+    }
     return result;
   }
   function showErrors(all=false) {
@@ -83,6 +95,9 @@
     if (!storageAvailable) return;
     const data={};fields.forEach(id=>data[id]=$(id).value);data.selectedId=selected?.id ?? null;
     data.signatureData=signatureData;data.signatureFor=signatureFor;
+    data.includeEvidence=$('includeEvidence').value;
+    data.evidenceCount=$('evidenceCount').value;
+    data.photos=photoSlots.map(photo=>photo.data);
     try { sessionStorage.setItem(storageKey,JSON.stringify(data)); } catch { storageAvailable=false; }
   }
   function restore() {
@@ -94,6 +109,17 @@
       if (selected) $('vulnerability').value=selected.label;
       if (promoters.includes($('promoter').value) && data.signatureFor===$('promoter').value && typeof data.signatureData==='string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(data.signatureData) && data.signatureData.length<3000000) {
         signatureData=data.signatureData;signatureFor=data.signatureFor;
+      }
+      if (data.includeEvidence==='yes') $('includeEvidence').value='yes';
+      if (/^[1-6]$/.test(data.evidenceCount)) $('evidenceCount').value=data.evidenceCount;
+      if (Array.isArray(data.photos)) {
+        photoSlots.forEach((photo,index)=>{
+          const image=data.photos[index];
+          if (typeof image==='string' && image.length<=maxPhotoDataLength && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image)) {
+            photo.data=image;
+            photo.original=image;
+          }
+        });
       }
     } catch { /* A fresh form remains available if browser storage is unavailable. */ }
   }
@@ -140,6 +166,7 @@
     if (signatureData && signatureFor===$('promoter').value) { const image=document.createElement('img');image.src=signatureData;image.alt='Firma del promotor';image.className='report-signature';signoff.append(image); }
     signoff.append(document.createTextNode('Promotor del Programa Pensión 65'),document.createElement('br'));
     const promoterName=document.createElement('strong');promoterName.textContent=value('promoter','NOMBRE DEL PROMOTOR');signoff.append(promoterName);
+    appendPhotoAnnexes(doc);
     const count=Object.keys(errors()).length;
     $('completion-state').textContent=count ? 'Completa los datos' : 'Listo para copiar';
     $('completion-state').classList.toggle('ready',!count);
@@ -153,7 +180,7 @@
   }
   function preparePrintDocument() {
     const valid=!Object.keys(errors()).length;
-    const count=window.P65Print.build($('report-document'),valid);
+    const count=$('print-pages').children.length || window.P65Print.build($('report-document'),valid);
     if(valid)document.title=pdfFilename();
     return count;
   }
@@ -204,6 +231,163 @@
     }
   });
   $('remove-signature').addEventListener('click',()=>{clearSignature();$('signature-status').textContent='Firma retirada.';update();});
+
+  function appendPhotoAnnexes(doc) {
+    const count=evidenceCount();
+    for (let start=0;start<count;start+=2) {
+      const page=document.createElement('section');
+      page.className='report-annex';
+      const heading=document.createElement('h3');
+      heading.textContent='ANEXO FOTOGRÁFICO';
+      page.append(heading);
+      for (let index=start;index<Math.min(start+2,count);index++) {
+        if (!photoSlots[index].data) continue;
+        const figure=document.createElement('figure');
+        const image=document.createElement('img');
+        const caption=document.createElement('figcaption');
+        caption.textContent=`Fotografía ${index+1}`;
+        image.alt=`Evidencia de la visita, fotografía ${index+1}`;
+        image.src=photoSlots[index].data;
+        figure.append(image,caption);
+        page.append(figure);
+      }
+      if (page.children.length>1) doc.append(page);
+    }
+  }
+
+  async function readEvidencePhoto(file) {
+    const url=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result);
+      reader.onerror=reject;
+      reader.readAsDataURL(file);
+    });
+    return encodeEvidencePhoto(url);
+  }
+
+  async function encodeEvidencePhoto(url, turns=0) {
+    const image=new Image();
+    image.src=url;
+    await image.decode();
+    const canvas=document.createElement('canvas');
+    const context=canvas.getContext('2d');
+    let scale=Math.min(1,1600/Math.max(image.naturalWidth,image.naturalHeight));
+    // Bound each image so six photos and the signature fit in the local draft.
+    for (let attempt=0;attempt<8;attempt++) {
+      const width=Math.max(1,Math.round(image.naturalWidth*scale));
+      const height=Math.max(1,Math.round(image.naturalHeight*scale));
+      const swapAxes=turns%2===1;
+      canvas.width=swapAxes?height:width;
+      canvas.height=swapAxes?width:height;
+      context.fillStyle='#fff';
+      context.fillRect(0,0,canvas.width,canvas.height);
+      context.translate(canvas.width/2,canvas.height/2);
+      context.rotate(turns*Math.PI/2);
+      context.drawImage(image,-width/2,-height/2,width,height);
+      for (const quality of [0.86,0.74,0.62]) {
+        const data=canvas.toDataURL('image/jpeg',quality);
+        if (data.length<=maxPhotoDataLength) return data;
+      }
+      scale*=0.8;
+    }
+    throw new Error('La foto supera el tamaño disponible.');
+  }
+
+  async function rotateEvidencePhoto(photo, direction) {
+    const turns=(photo.turns+direction+4)%4;
+    const request=++photo.request;
+    photo.loading=true;
+    photo.message.textContent='Girando foto…';
+    syncEvidence();update();
+    try {
+      const data=turns ? await encodeEvidencePhoto(photo.original,turns) : photo.original;
+      if (photo.request!==request) return;
+      photo.data=data;
+      photo.turns=turns;
+      photo.message.textContent='Giro aplicado a la vista previa y al anexo.';
+    } catch {
+      if (photo.request!==request) return;
+      photo.message.textContent='No se pudo girar la foto. Vuelva a intentarlo.';
+    }
+    photo.loading=false;
+    syncEvidence();update();
+  }
+
+  function syncEvidence() {
+    const count=evidenceCount();
+    $('evidence-count-field').hidden=!includesEvidence();
+    $('evidence-uploads').hidden=!count;
+    photoSlots.forEach((photo,index)=>{
+      photo.card.hidden=index>=count;
+      photo.image.hidden=!photo.data;
+      photo.remove.hidden=!photo.data;
+      photo.rotators.forEach(button=>{button.hidden=!photo.data;button.disabled=photo.loading;});
+      photo.upload.textContent=photo.data?'Reemplazar foto':'Cargar foto';
+      photo.upload.setAttribute('aria-label',`${photo.data?'Reemplazar':'Cargar'} fotografía ${index+1}`);
+      if (!photo.data) photo.image.removeAttribute('src');
+      else if (photo.image.getAttribute('src')!==photo.data) photo.image.src=photo.data;
+    });
+    const loaded=photoSlots.slice(0,count).filter(photo=>photo.data).length;
+    $('evidence-progress').textContent=count ? `${loaded} de ${count} fotos cargadas` : '';
+  }
+
+  photoSlots.forEach((photo,index)=>{
+    const number=index+1;
+    const card=document.createElement('div');card.className='photo-slot';
+    const label=document.createElement('strong');label.className='photo-slot-title';label.textContent=`Fotografía ${number}`;
+    const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp';input.hidden=true;
+    const upload=document.createElement('button');upload.type='button';upload.className='button button-secondary';
+    const image=document.createElement('img');image.alt=`Vista previa de fotografía ${number}`;
+    const remove=document.createElement('button');remove.type='button';remove.className='button button-quiet';remove.textContent='Quitar foto';remove.setAttribute('aria-label',`Quitar fotografía ${number}`);
+    const tools=document.createElement('div');tools.className='photo-actions';
+    const rotators=[['izquierda',-1],['derecha',1]].map(([side,direction])=>{
+      const button=document.createElement('button');
+      button.type='button';button.className='button button-quiet';
+      button.textContent=`Girar a la ${side}`;
+      button.setAttribute('aria-label',`Girar fotografía ${number} a la ${side}`);
+      button.addEventListener('click',()=>rotateEvidencePhoto(photo,direction));
+      return button;
+    });
+    const message=document.createElement('span');message.className='field-help';message.id=`evidence-status-${number}`;message.setAttribute('role','status');upload.setAttribute('aria-describedby',message.id);
+    Object.assign(photo,{card,upload,image,remove,rotators,message});
+    tools.append(...rotators,remove);
+    card.append(label,input,upload,image,tools,message);$('photo-slots').append(card);
+    upload.addEventListener('click',()=>input.click());
+    input.addEventListener('change',async()=>{
+      const file=input.files[0];
+      if (!file) return;
+      input.value='';
+      if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size>20*1024*1024) {
+        message.textContent='Seleccione una foto JPG, PNG o WebP de hasta 20 MB.';
+        return;
+      }
+      const request=++photo.request;
+      photo.loading=true;
+      message.textContent='Preparando foto…';
+      syncEvidence();update();
+      try {
+        const data=await readEvidencePhoto(file);
+        if (photo.request!==request) return;
+        photo.data=data;
+        photo.original=data;
+        photo.turns=0;
+        message.textContent='Foto lista para el anexo.';
+      } catch {
+        if (photo.request!==request) return;
+        message.textContent='No se pudo leer esta foto. Seleccione otra imagen.';
+      }
+      photo.loading=false;
+      syncEvidence();update();
+    });
+    remove.addEventListener('click',()=>{
+      photo.request++;
+      photo.data='';photo.original='';photo.turns=0;photo.loading=false;message.textContent='Foto retirada.';
+      syncEvidence();update();upload.focus();
+    });
+  });
+  ['includeEvidence','evidenceCount'].forEach(id=>$(id).addEventListener('change',()=>{
+    syncEvidence();update();
+  }));
 
   // Searchable, single-choice SISOPE list. Free text is never a selected condition.
   let visible=[], activeIndex=-1;
@@ -315,7 +499,14 @@
     }
     copy.querySelectorAll('p').forEach(p=>{p.setAttribute('style','margin:0 0 12pt;text-align:justify;'+(p.classList.contains('report-number')?'text-align:center;font-size:12pt;':'')+(p.classList.contains('report-letterhead')?'text-align:center;font-size:8pt;line-height:1.25;color:#777;':'')+(p.classList.contains('report-signoff')||p.classList.contains('report-recommendations')||p.classList.contains('report-recipient')||p.classList.contains('report-reference')?'text-align:left;':'')+(p.classList.contains('report-facts')?'white-space:pre-wrap;':''));p.removeAttribute('class');});
     copy.querySelectorAll('hr').forEach(hr=>{hr.setAttribute('style','border:0;border-top:1px solid #444;margin:0 0 12pt;');hr.removeAttribute('class');});
-    copy.querySelectorAll('img').forEach(image=>{image.setAttribute('style','display:block;max-width:220px;max-height:90px;object-fit:contain;margin:0 0 6pt;');image.removeAttribute('class');});
+    copy.querySelectorAll('.report-signature').forEach(image=>{image.setAttribute('style','display:block;max-width:220px;max-height:90px;object-fit:contain;margin:0 0 6pt;');image.removeAttribute('class');});
+    copy.querySelectorAll('.report-annex').forEach(annex=>{
+      annex.setAttribute('style','page-break-before:always;text-align:center;');
+      annex.querySelector('h3').setAttribute('style','font-size:12pt;text-align:center;margin:0 0 12pt;');
+      annex.querySelectorAll('figure').forEach(figure=>figure.setAttribute('style','page-break-inside:avoid;text-align:center;margin:0 0 12pt;'));
+      annex.querySelectorAll('img').forEach(image=>image.setAttribute('style','display:block;max-width:160mm;max-height:94mm;object-fit:contain;margin:0 auto 4pt;'));
+      annex.querySelectorAll('figcaption').forEach(caption=>caption.setAttribute('style','font-size:10pt;text-align:center;'));
+    });
     return '<!doctype html><html><head><meta charset="utf-8"></head><body>'+copy.outerHTML+'</body></html>';
   }
   function fallbackCopy(text){
@@ -324,20 +515,50 @@
   }
   $('copy-button').addEventListener('click',async()=>{
     if(!validateAction())return;
-    const plain=plainReport();let copied=false;
-    try{if(navigator.clipboard?.write&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'text/plain':new Blob([plain],{type:'text/plain'}),'text/html':new Blob([richReport()],{type:'text/html'})})]);copied=true;}}catch{}
+    const plain=plainReport();let copied=false,rich=false;
+    try{if(navigator.clipboard?.write&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'text/plain':new Blob([plain],{type:'text/plain'}),'text/html':new Blob([richReport()],{type:'text/html'})})]);copied=true;rich=true;}}catch{}
     if(!copied){try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(plain);copied=true;}}catch{}}
     if(!copied)copied=fallbackCopy(plain);
-    status(copied?'Informe copiado. Ya puedes pegarlo en Word.':'No se pudo copiar automáticamente. Selecciona el texto del informe y cópialo manualmente.',copied?'success':'error');
+    if (!copied) status('No se pudo copiar automáticamente. Selecciona el texto del informe y cópialo manualmente.','error');
+    else if (!rich && evidenceCount()) status('Texto copiado. Para incluir las fotos, imprime el informe o guárdalo como PDF.','success');
+    else status('Informe copiado. Ya puedes pegarlo en Word.','success');
   });
-  $('print-button').addEventListener('click',()=>{if(!validateAction())return;try{const count=preparePrintDocument();status('Informe listo para imprimir en A4: '+count+(count===1?' página.':' páginas.'));window.print();}catch{document.title=baseDocumentTitle;status('No se pudo preparar la impresión. Intente nuevamente.','error');}});
+  $('print-button').addEventListener('click',()=>{
+    if (!validateAction()) return;
+    try {
+      preparePrintDocument();
+      status('Informe listo. Si el diálogo de impresión no se abre, use Descargar PDF.');
+      window.print();
+    } catch {
+      document.title=baseDocumentTitle;
+      status('No se pudo abrir la impresión. Use Descargar PDF para guardar el informe.','error');
+    }
+  });
+  $('pdf-button').addEventListener('click',async()=>{
+    if (!validateAction()) return;
+    $('pdf-button').disabled=true;
+    status('Preparando el PDF…');
+    try {
+      const filename=pdfFilename();
+      preparePrintDocument();
+      await window.P65PDF.download($('print-pages'),filename);
+      status('PDF descargado. Ábralo para imprimir.','success');
+    } catch {
+      status('No se pudo generar el PDF. Intente descargarlo nuevamente.','error');
+    } finally {
+      document.title=baseDocumentTitle;
+      $('pdf-button').disabled=false;
+    }
+  });
   $('clear-button').addEventListener('click',()=>{
-    const hasData=selected||signatureData||fields.some(id=>$(id).value)||combo.value;
+    const hasData=selected||signatureData||fields.some(id=>$(id).value)||combo.value||includesEvidence()||photoSlots.some(photo=>photo.data);
     if(hasData&&!window.confirm('¿Limpiar todos los datos de la visita y el informe?'))return;
-    $('visit-form').reset();$('print-pages').replaceChildren();clearSignature();$('signature-status').textContent='';selected=null;attempted=false;touched.clear();closeOptions();closeCalendar(false);showMeta();showErrors();renderReport();
+    $('visit-form').reset();$('print-pages').replaceChildren();clearSignature();$('signature-status').textContent='';selected=null;attempted=false;touched.clear();closeOptions();closeCalendar(false);
+    photoSlots.forEach(photo=>{photo.request++;photo.data='';photo.original='';photo.turns=0;photo.loading=false;photo.message.textContent='';});
+    syncEvidence();showMeta();showErrors();renderReport();
     try{sessionStorage.removeItem(storageKey);}catch{}
     status('Formulario limpio. Puedes registrar una nueva visita.');$('reportNumber').focus();
   });
   $('visit-form').addEventListener('submit',event=>event.preventDefault());
-  restore();syncSignature();showMeta();renderReport();
+  restore();syncSignature();syncEvidence();showMeta();renderReport();
 })();

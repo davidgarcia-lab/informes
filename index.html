@@ -10,6 +10,8 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <script src="print-layout.js" defer></script>
+  <script src="vendor/pdf-lib.min.js" defer></script>
+  <script src="pdf-export.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -46,13 +48,32 @@
           <div class="field span-2"><label for="recommendation">Recomendación <span>*</span></label><select id="recommendation" name="recommendation" required aria-describedby="recommendation-error"><option value="">Seleccione la recomendación</option><option value="priorizar">Priorizar</option><option value="no-priorizar">No priorizar</option></select><span class="field-error" id="recommendation-error"></span></div>
           <div class="field full-width"><div class="facts-label"><label for="facts">Hechos observados durante la visita <span>*</span></label><span>Se incluirán sin modificaciones en el informe</span></div><textarea id="facts" name="facts" rows="4" placeholder="Describa las condiciones de vivienda, salud, alimentación, ingresos, convivencia y otras situaciones observadas en campo." required aria-describedby="facts-error" spellcheck="false"></textarea><span class="field-error" id="facts-error"></span></div>
         </div>
-        <div class="form-footer"><p><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 2 4 4v5c0 4 6 8 6 8s6-4 6-8V4l-6-2Z"/><path d="m7 9 2 2 4-4"/></svg>Los datos permanecen en esta pestaña y no se envían a servidores.</p><button type="button" id="clear-button" class="button button-quiet">LIMPIAR FORMULARIO</button></div>
+        <fieldset class="evidence-fieldset">
+          <legend>Evidencia fotográfica</legend>
+          <div class="evidence-controls">
+            <div class="field">
+              <label for="includeEvidence">¿Adjuntará evidencia fotográfica?</label>
+              <select id="includeEvidence"><option value="no">No</option><option value="yes">Sí</option></select>
+            </div>
+            <div id="evidence-count-field" class="field" hidden>
+              <label for="evidenceCount">¿Cuántas fotos adjuntará? <span>*</span></label>
+              <select id="evidenceCount" aria-describedby="evidenceCount-error evidence-help"><option value="">Seleccione la cantidad</option><option value="1">1 foto</option><option value="2">2 fotos</option><option value="3">3 fotos</option><option value="4">4 fotos</option><option value="5">5 fotos</option><option value="6">6 fotos</option></select>
+              <span id="evidenceCount-error" class="field-error"></span>
+            </div>
+          </div>
+          <div id="evidence-uploads" hidden>
+            <p id="evidence-help" class="field-help">JPG, PNG o WebP, hasta 20 MB por foto. Se colocarán en los anexos, dos por hoja.</p>
+            <div id="photo-slots" class="photo-slots"></div>
+            <p id="evidence-progress" class="field-help" role="status"></p>
+          </div>
+        </fieldset>
+        <div class="form-footer"><p><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 2 4 4v5c0 4 6 8 6 8s6-4 6-8V4l-6-2Z"/><path d="m7 9 2 2 4-4"/></svg>Los datos y las fotos permanecen en esta pestaña y no se envían a servidores.</p><button type="button" id="clear-button" class="button button-quiet">LIMPIAR FORMULARIO</button></div>
       </form>
     </section>
     <section class="card report-card" aria-labelledby="report-title">
       <div class="section-heading report-heading"><div class="section-title"><span class="step" aria-hidden="true">02</span><h2 id="report-title">INFORME GENERADO</h2></div><span id="completion-state" class="completion-state">Completa los datos</span></div>
       <div class="report-workspace"><table class="print-frame" role="presentation"><thead aria-hidden="true"><tr><td class="print-spacer"></td></tr></thead><tbody><tr><td class="print-content"><article id="report-document" class="report-document" aria-label="Informe generado"></article></td></tr></tbody><tfoot aria-hidden="true"><tr><td class="print-spacer"></td></tr></tfoot></table></div>
-      <div class="report-toolbar"><div class="report-feedback"><p id="action-status" role="status" aria-live="polite">El informe se actualiza mientras escribes.</p><p id="pdf-filename" class="pdf-filename" hidden></p></div><div class="actions"><button type="button" class="button button-secondary" id="print-button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 7V2h10v5M5 14H3V7h14v7h-2M5 11h10v7H5z"/></svg>IMPRIMIR INFORME</button><button type="button" class="button button-primary" id="copy-button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="6" y="6" width="11" height="12" rx="1"/><path d="M13 6V2H2v12h4"/></svg>COPIAR INFORME</button></div></div>
+      <div class="report-toolbar"><div class="report-feedback"><p id="action-status" role="status" aria-live="polite">El informe se actualiza mientras escribes.</p><p id="pdf-filename" class="pdf-filename" hidden></p></div><div class="actions"><button type="button" class="button button-secondary" id="print-button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 7V2h10v5M5 14H3V7h14v7h-2M5 11h10v7H5z"/></svg>IMPRIMIR INFORME</button><button type="button" class="button button-primary" id="pdf-button">DESCARGAR PDF</button><button type="button" class="button button-secondary" id="copy-button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="6" y="6" width="11" height="12" rx="1"/><path d="M13 6V2H2v12h4"/></svg>COPIAR INFORME</button></div></div>
     </section>
     <footer class="site-footer">Pensión 65 <span aria-hidden="true">·</span> Informes de visitas domiciliarias</footer>
   </main>
