@@ -140,21 +140,12 @@
       if(boldPrefix){const strong=document.createElement('strong');strong.textContent=boldPrefix;p.append(strong,document.createTextNode(text));} else p.textContent=text;
       doc.append(p);return p;
     }
-    function metadata(label, text, className='') {
-      const p=paragraph('', 'report-meta '+className);
-      const key=document.createElement('strong');key.className='meta-label';key.textContent=label;
-      const value=document.createElement('span');value.className='meta-value';value.textContent=text;
-      p.append(key,value);return value;
-    }
-    const letterhead=paragraph('', 'report-letterhead');
-    window.P65Print.headerLines.forEach((line,i)=>{if(i)letterhead.append(document.createElement('br'));letterhead.append(document.createTextNode(line));});
-    const heading=paragraph('', 'report-number');const strong=document.createElement('strong');strong.textContent=`INFORME N° ${value('reportNumber','NÚMERO DE INFORME')}`;heading.append(strong);
-    const recipientDetails=metadata('A:', '', 'report-recipient');
-    const recipientName=document.createElement('strong');recipientName.textContent='DAVID DANY GARCIA VENTOCILLA';recipientDetails.append(recipientName,document.createElement('br'),document.createTextNode('Coordinador Territorial'),document.createElement('br'),document.createTextNode('Unidad Territorial Junín'));
-    metadata('REFERENCIA:', 'Expediente '+value('fileNumber','NÚMERO DE EXPEDIENTE'), 'report-reference');
-    metadata('ASUNTO:', `Sobre visita domiciliaria a potencial usuario ${name} con DNI ${dni}, centro poblado ${settlement}, distrito ${district}, provincia ${province}.`, 'report-subject');
-    metadata('FECHA:', reportDate, 'report-date');
-    const divider=document.createElement('hr');divider.className='report-divider';doc.append(divider);
+    window.P65ReportFormat.header(doc, {
+      number: value('reportNumber','NÚMERO DE INFORME'),
+      reference: 'Expediente '+value('fileNumber','NÚMERO DE EXPEDIENTE'),
+      subject: `Sobre visita domiciliaria a potencial usuario ${name} con DNI ${dni}, centro poblado ${settlement}, distrito ${district}, provincia ${province}.`,
+      date: reportDate
+    });
     paragraph('Me dirijo a usted, para saludarlo cordialmente y a la vez informar sobre la visita domiciliaria realizada al potencial usuario.');
     paragraph(`Con fecha ${visitDate}, se realizó la visita domiciliaria de verificación al potencial usuario ${name}, identificado con DNI ${dni}, de ${value('age','EDAD')} años de edad, domiciliado en ${settlement}, distrito de ${district}, provincia de ${province}.`);
     paragraph('En la visita domiciliaria se evidenció lo siguiente:\n'+($('facts').value || '[HECHOS OBSERVADOS DURANTE LA VISITA]'), 'report-facts');
@@ -162,10 +153,7 @@
     paragraph(`De lo expuesto, se concluye que el potencial usuario presenta vulnerabilidad de condición ${condition}.`);
     paragraph('', 'report-recommendations', 'RECOMENDACIONES:');
     paragraph(Object.hasOwn(recommendations,$('recommendation').value) ? recommendations[$('recommendation').value] : '[RECOMENDACIÓN SELECCIONADA]');
-    const signoff=paragraph('Atentamente,', 'report-signoff');signoff.append(document.createElement('br'),document.createElement('br'));
-    if (signatureData && signatureFor===$('promoter').value) { const image=document.createElement('img');image.src=signatureData;image.alt='Firma del promotor';image.className='report-signature';signoff.append(image); }
-    signoff.append(document.createTextNode('Promotor del Programa Pensión 65'),document.createElement('br'));
-    const promoterName=document.createElement('strong');promoterName.textContent=value('promoter','NOMBRE DEL PROMOTOR');signoff.append(promoterName);
+    window.P65ReportFormat.signoff(doc, value('promoter','NOMBRE DEL PROMOTOR'), signatureFor===$('promoter').value ? signatureData : '');
     appendPhotoAnnexes(doc);
     const count=Object.keys(errors()).length;
     $('completion-state').textContent=count ? 'Completa los datos' : 'Listo para copiar';
@@ -179,6 +167,7 @@
     return 'Informe de afiliación - '+(name||'USUARIO')+' - DNI '+$('dni').value;
   }
   function preparePrintDocument() {
+    if ($('affiliation-panel').hidden) return;
     const valid=!Object.keys(errors()).length;
     const count=$('print-pages').children.length || window.P65Print.build($('report-document'),valid);
     if(valid)document.title=pdfFilename();

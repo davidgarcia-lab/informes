@@ -10,9 +10,11 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <script src="print-layout.js" defer></script>
+  <script src="report-format.js" defer></script>
   <script src="vendor/pdf-lib.min.js" defer></script>
   <script src="pdf-export.js" defer></script>
   <script src="app.js" defer></script>
+  <script src="notification.js" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -23,33 +25,56 @@
     </div>
   </header>
   <main class="main">
+    <nav class="report-switch" aria-label="Tipo de informe">
+      <button type="button" class="button button-secondary" id="show-affiliation" aria-controls="affiliation-panel" aria-pressed="true">Afiliación</button>
+      <button type="button" class="button button-secondary" id="show-notification" aria-controls="notification-panel" aria-pressed="false">Notificación</button>
+    </nav>
+    <div id="affiliation-panel">
     <p class="intro">Completa los datos de la visita y obtén tu informe listo para Word.</p>
     <section class="card form-card" aria-labelledby="form-title">
-      <div class="section-heading"><div class="section-title"><span class="step" aria-hidden="true">01</span><h2 id="form-title">DATOS DEL PROMOTOR</h2></div><span class="required-note">Campos con * obligatorios</span></div>
+      <div class="section-heading"><div class="section-title"><span class="step" aria-hidden="true">01</span><h2 id="form-title">DATOS DEL INFORME DE AFILIACIÓN</h2></div><span class="required-note">Campos con * obligatorios</span></div>
       <form id="visit-form" novalidate autocomplete="off">
         <div id="validation-summary" class="validation-summary" role="alert" tabindex="-1" hidden></div>
-        <div class="form-grid">
-          <div class="field span-2"><label for="promoter">Nombre del promotor <span>*</span></label><select id="promoter" name="promoter" required aria-describedby="promoter-error"><option value="">Seleccione al promotor</option><option value="ALVAREZ ZARATE, ABEL">ALVAREZ ZARATE, ABEL</option><option value="CARDENAS ASTUPILLO, MARLINI YUDI">CARDENAS ASTUPILLO, MARLINI YUDI</option></select><span class="field-error" id="promoter-error"></span></div>
-          <div class="field span-2 signature-field"><label for="signature">Firma del promotor (opcional)</label><input id="signature" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="signature-help signature-status" disabled><span id="signature-help" class="field-help">Seleccione al promotor y cargue una imagen PNG, JPG o WebP, de hasta 2 MB.</span><span id="signature-status" class="field-help" role="status"></span><div id="signature-preview-wrap" class="signature-preview-wrap" hidden><img id="signature-preview" alt="Vista previa de la firma"><button type="button" id="remove-signature" class="button button-quiet">QUITAR FIRMA</button></div></div>
-          <div class="field"><label for="reportNumber">Número de informe <span>*</span></label><input id="reportNumber" name="reportNumber" type="text" placeholder="Ej. 025-2026" required aria-describedby="reportNumber-error"><span class="field-error" id="reportNumber-error"></span></div>
-          <div class="field"><label for="fileNumber">Número de expediente <span>*</span></label><input id="fileNumber" name="fileNumber" type="text" placeholder="Número de expediente" required aria-describedby="fileNumber-error"><span class="field-error" id="fileNumber-error"></span></div>
-          <div class="field span-2"><label for="fullName">Nombre completo del potencial usuario <span>*</span></label><input id="fullName" name="fullName" type="text" placeholder="Nombres y apellidos" required aria-describedby="fullName-error"><span class="field-error" id="fullName-error"></span></div>
-          <div class="field"><label for="dni">DNI <span>*</span></label><input id="dni" name="dni" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="8 dígitos" required aria-describedby="dni-error"><span class="field-error" id="dni-error"></span></div>
-          <div class="field"><label for="age">Edad <span>*</span></label><input id="age" name="age" type="number" inputmode="numeric" min="0" step="1" placeholder="Años cumplidos" required aria-describedby="age-error"><span class="field-error" id="age-error"></span></div>
-          <div class="field"><label for="reportDate">Fecha del informe <span>*</span></label><div class="date-input"><input id="reportDate" name="reportDate" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" required aria-describedby="reportDate-error"><button type="button" class="calendar-trigger" data-date="reportDate" aria-label="Elegir fecha del informe" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></button></div><span class="field-error" id="reportDate-error"></span></div>
-          <div class="field visit-date"><label for="visitDate">Fecha de visita domiciliaria <span>*</span></label><div class="date-input"><input id="visitDate" name="visitDate" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" required aria-describedby="visitDate-error"><button type="button" class="calendar-trigger" data-date="visitDate" aria-label="Elegir fecha de visita domiciliaria" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></button></div><span class="field-error" id="visitDate-error"></span></div>
-          <div class="field"><label for="settlement">Centro poblado <span>*</span></label><input id="settlement" name="settlement" type="text" placeholder="Nombre del centro poblado" required aria-describedby="settlement-error"><span class="field-error" id="settlement-error"></span></div>
-          <div class="field"><label for="district">Distrito <span>*</span></label><input id="district" name="district" type="text" placeholder="Nombre del distrito" required aria-describedby="district-error"><span class="field-error" id="district-error"></span></div>
-          <div class="field"><label for="province">Provincia <span>*</span></label><input id="province" name="province" type="text" placeholder="Nombre de la provincia" required aria-describedby="province-error"><span class="field-error" id="province-error"></span></div>
-          <div class="field span-2 combo-field"><label for="vulnerability">Vulnerabilidad identificada - SISOPE <span>*</span></label>
-            <div class="combo-wrap"><input id="vulnerability" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="vulnerability-list" aria-required="true" placeholder="Buscar y seleccionar vulnerabilidad" aria-describedby="vulnerability-error" autocomplete="off"><button type="button" id="combo-toggle" aria-label="Mostrar vulnerabilidades SISOPE" tabindex="-1"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 7 5 5 5-5"/></svg></button><div id="vulnerability-list" role="listbox" aria-label="Vulnerabilidades SISOPE" hidden></div></div>
-            <span class="field-error" id="vulnerability-error"></span><div id="selection-meta" class="selection-meta" hidden></div>
-          </div>
-          <div class="field span-2"><label for="recommendation">Recomendación <span>*</span></label><select id="recommendation" name="recommendation" required aria-describedby="recommendation-error"><option value="">Seleccione la recomendación</option><option value="priorizar">Priorizar</option><option value="no-priorizar">No priorizar</option></select><span class="field-error" id="recommendation-error"></span></div>
-          <div class="field full-width"><div class="facts-label"><label for="facts">Hechos observados durante la visita <span>*</span></label><span>Se incluirán sin modificaciones en el informe</span></div><textarea id="facts" name="facts" rows="4" placeholder="Describa las condiciones de vivienda, salud, alimentación, ingresos, convivencia y otras situaciones observadas en campo." required aria-describedby="facts-error" spellcheck="false"></textarea><span class="field-error" id="facts-error"></span></div>
-        </div>
         <fieldset class="evidence-fieldset">
-          <legend>Evidencia fotográfica</legend>
+          <legend>1. Identificación del informe</legend>
+          <div class="form-block-grid">
+            <div class="field"><label for="promoter">Nombre del promotor <span>*</span></label><select id="promoter" name="promoter" required aria-describedby="promoter-error"><option value="">Seleccione al promotor</option><option value="ALVAREZ ZARATE, ABEL">ALVAREZ ZARATE, ABEL</option><option value="CARDENAS ASTUPILLO, MARLINI YUDI">CARDENAS ASTUPILLO, MARLINI YUDI</option></select><span class="field-error" id="promoter-error"></span></div>
+            <div class="field"><label for="reportNumber">Número de informe <span>*</span></label><input id="reportNumber" name="reportNumber" type="text" placeholder="Ej. 025-2026" required aria-describedby="reportNumber-error"><span class="field-error" id="reportNumber-error"></span></div>
+            <div class="field"><label for="fileNumber">Número de expediente <span>*</span></label><input id="fileNumber" name="fileNumber" type="text" placeholder="Número de expediente" required aria-describedby="fileNumber-error"><span class="field-error" id="fileNumber-error"></span></div>
+            <div class="field"><label for="reportDate">Fecha del informe <span>*</span></label><div class="date-input"><input id="reportDate" name="reportDate" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" required aria-describedby="reportDate-error"><button type="button" class="calendar-trigger" data-date="reportDate" aria-label="Elegir fecha del informe" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></button></div><span class="field-error" id="reportDate-error"></span></div>
+            <div class="field full-width signature-field"><label for="signature">Firma del promotor (opcional)</label><input id="signature" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="signature-help signature-status" disabled><span id="signature-help" class="field-help">Seleccione al promotor y cargue una imagen PNG, JPG o WebP, de hasta 2 MB.</span><span id="signature-status" class="field-help" role="status"></span><div id="signature-preview-wrap" class="signature-preview-wrap" hidden><img id="signature-preview" alt="Vista previa de la firma"><button type="button" id="remove-signature" class="button button-quiet">QUITAR FIRMA</button></div></div>
+          </div>
+        </fieldset>
+        <fieldset class="evidence-fieldset">
+          <legend>2. Datos del potencial usuario</legend>
+          <div class="form-block-grid">
+            <div class="field full-width"><label for="fullName">Nombre completo del potencial usuario <span>*</span></label><input id="fullName" name="fullName" type="text" placeholder="Nombres y apellidos" required aria-describedby="fullName-error"><span class="field-error" id="fullName-error"></span></div>
+            <div class="field"><label for="dni">DNI <span>*</span></label><input id="dni" name="dni" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" placeholder="8 dígitos" required aria-describedby="dni-error"><span class="field-error" id="dni-error"></span></div>
+            <div class="field"><label for="age">Edad <span>*</span></label><input id="age" name="age" type="number" inputmode="numeric" min="0" step="1" placeholder="Años cumplidos" required aria-describedby="age-error"><span class="field-error" id="age-error"></span></div>
+          </div>
+        </fieldset>
+        <fieldset class="evidence-fieldset">
+          <legend>3. Visita domiciliaria</legend>
+          <div class="form-block-grid">
+            <div class="field visit-date"><label for="visitDate">Fecha de visita domiciliaria <span>*</span></label><div class="date-input"><input id="visitDate" name="visitDate" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" required aria-describedby="visitDate-error"><button type="button" class="calendar-trigger" data-date="visitDate" aria-label="Elegir fecha de visita domiciliaria" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></button></div><span class="field-error" id="visitDate-error"></span></div>
+            <div class="field"><label for="settlement">Centro poblado <span>*</span></label><input id="settlement" name="settlement" type="text" placeholder="Nombre del centro poblado" required aria-describedby="settlement-error"><span class="field-error" id="settlement-error"></span></div>
+            <div class="field"><label for="district">Distrito <span>*</span></label><input id="district" name="district" type="text" placeholder="Nombre del distrito" required aria-describedby="district-error"><span class="field-error" id="district-error"></span></div>
+            <div class="field"><label for="province">Provincia <span>*</span></label><input id="province" name="province" type="text" placeholder="Nombre de la provincia" required aria-describedby="province-error"><span class="field-error" id="province-error"></span></div>
+            <div class="field full-width"><div class="facts-label"><label for="facts">Hechos observados durante la visita <span>*</span></label><span>Se incluirán sin modificaciones en el informe</span></div><textarea id="facts" name="facts" rows="4" placeholder="Describa las condiciones de vivienda, salud, alimentación, ingresos, convivencia y otras situaciones observadas en campo." required aria-describedby="facts-error" spellcheck="false"></textarea><span class="field-error" id="facts-error"></span></div>
+          </div>
+        </fieldset>
+        <fieldset class="evidence-fieldset">
+          <legend>4. Evaluación y recomendación</legend>
+          <div class="form-block-grid">
+            <div class="field combo-field"><label for="vulnerability">Vulnerabilidad identificada - SISOPE <span>*</span></label>
+              <div class="combo-wrap"><input id="vulnerability" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="vulnerability-list" aria-required="true" placeholder="Buscar y seleccionar vulnerabilidad" aria-describedby="vulnerability-error" autocomplete="off"><button type="button" id="combo-toggle" aria-label="Mostrar vulnerabilidades SISOPE" tabindex="-1"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 7 5 5 5-5"/></svg></button><div id="vulnerability-list" role="listbox" aria-label="Vulnerabilidades SISOPE" hidden></div></div>
+              <span class="field-error" id="vulnerability-error"></span><div id="selection-meta" class="selection-meta" hidden></div>
+            </div>
+            <div class="field"><label for="recommendation">Recomendación <span>*</span></label><select id="recommendation" name="recommendation" required aria-describedby="recommendation-error"><option value="">Seleccione la recomendación</option><option value="priorizar">Priorizar</option><option value="no-priorizar">No priorizar</option></select><span class="field-error" id="recommendation-error"></span></div>
+          </div>
+        </fieldset>
+        <fieldset class="evidence-fieldset">
+          <legend>5. Evidencia fotográfica</legend>
           <div class="evidence-controls">
             <div class="field">
               <label for="includeEvidence">¿Adjuntará evidencia fotográfica?</label>
@@ -76,6 +101,110 @@
       <div class="report-toolbar"><div class="report-feedback"><p id="action-status" role="status" aria-live="polite">El informe se actualiza mientras escribes.</p><p id="pdf-filename" class="pdf-filename" hidden></p></div><div class="actions"><button type="button" class="button button-secondary" id="print-button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 7V2h10v5M5 14H3V7h14v7h-2M5 11h10v7H5z"/></svg>IMPRIMIR INFORME</button><button type="button" class="button button-primary" id="pdf-button">DESCARGAR PDF</button><button type="button" class="button button-secondary" id="copy-button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="6" y="6" width="11" height="12" rx="1"/><path d="M13 6V2H2v12h4"/></svg>COPIAR INFORME</button></div></div>
     </section>
     <footer class="site-footer">Pensión 65 <span aria-hidden="true">·</span> Informes de visitas domiciliarias</footer>
+    </div>
+    <div id="notification-panel" hidden>
+      <p class="intro">Registra la entrega de la carta y adjunta la constancia firmada. Si también hubo depósito, registra la operación y adjunta su voucher.</p>
+      <section class="card form-card" aria-labelledby="notification-title">
+        <div class="section-heading">
+          <div class="section-title"><span class="step" aria-hidden="true">01</span><h2 id="notification-title">DATOS DEL INFORME DE NOTIFICACIÓN</h2></div>
+          <span class="required-note">Campos con * obligatorios</span>
+        </div>
+        <form id="notification-form" autocomplete="off">
+          <fieldset class="evidence-fieldset">
+            <legend>1. Identificación del informe</legend>
+            <div class="form-block-grid">
+              <div class="field"><label for="notice-promoter">Promotor <span>*</span></label><select id="notice-promoter" required></select></div>
+              <div class="field"><label for="notice-number">Número de informe <span>*</span></label><input id="notice-number" required placeholder="Ej. 025-2026"></div>
+              <div class="field"><label for="notice-file-number">Número de expediente (opcional)</label><input id="notice-file-number" placeholder="Número de expediente"></div>
+              <div class="field"><label for="notice-report-date">Fecha del informe <span>*</span></label><input id="notice-report-date" type="date" max="9999-12-31" required></div>
+              <div class="field"><label for="notice-case">Actuación realizada <span>*</span></label><select id="notice-case" required><option value="notice">Solo notificación</option><option value="deposit">Notificación y depósito</option></select></div>
+              <div class="field full-width signature-field">
+                <label for="notice-signature">Firma del promotor (opcional)</label>
+                <input id="notice-signature" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="notice-signature-help notice-signature-status" disabled>
+                <span id="notice-signature-help" class="field-help">Seleccione al promotor y cargue una imagen PNG, JPG o WebP, de hasta 2 MB.</span>
+                <span id="notice-signature-status" class="field-help" role="status"></span>
+                <div id="notice-signature-preview-wrap" class="signature-preview-wrap" hidden>
+                  <img id="notice-signature-preview" alt="Vista previa de la firma">
+                  <button type="button" id="notice-remove-signature" class="button button-quiet">QUITAR FIRMA</button>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset class="evidence-fieldset">
+            <legend>2. Persona fallecida</legend>
+            <div class="form-block-grid">
+              <div class="field"><label for="notice-deceased">Nombres y apellidos <span>*</span></label><input id="notice-deceased" required></div>
+              <div class="field"><label for="notice-deceased-dni">DNI de la persona fallecida <span>*</span></label><input id="notice-deceased-dni" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required></div>
+            </div>
+          </fieldset>
+          <fieldset class="evidence-fieldset">
+            <legend>3. Entrega de la carta</legend>
+            <div class="form-block-grid">
+              <div class="field"><label for="notice-letter">Número de carta notificada <span>*</span></label><input id="notice-letter" required></div>
+              <div class="field"><label for="notice-date">Fecha de notificación <span>*</span></label><input id="notice-date" type="date" max="9999-12-31" required></div>
+              <div class="field"><label for="notice-recipient">Nombres y apellidos de quien recibió <span>*</span></label><input id="notice-recipient" required></div>
+              <div class="field"><label for="notice-recipient-dni">DNI de quien recibió <span>*</span></label><input id="notice-recipient-dni" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required></div>
+              <div class="field">
+                <label for="notice-relationship">Parentesco con el exusuario fallecido <span>*</span></label>
+                <select id="notice-relationship" required>
+                  <option value="">Seleccione una opción</option>
+                  <option>Esposo/a</option>
+                  <option>Conviviente</option>
+                  <option>Hijo/a</option>
+                  <option>Padre</option>
+                  <option>Madre</option>
+                  <option>Hermano/a</option>
+                  <option>Abuelo/a</option>
+                  <option>Nieto/a</option>
+                  <option>Tío/a</option>
+                  <option>Sobrino/a</option>
+                  <option>Cuñado/a</option>
+                  <option>Yerno</option>
+                  <option>Nuera</option>
+                  <option>Primo/a</option>
+                  <option>Otro familiar</option>
+                  <option>Sin parentesco</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset class="evidence-fieldset" id="notice-deposit" hidden disabled>
+            <legend>4. Depósito</legend>
+            <div class="form-block-grid">
+              <div class="field"><label for="notice-amount">Monto del depósito (S/) <span>*</span></label><input id="notice-amount" type="number" min="0.01" step="0.01" required></div>
+              <div class="field"><label for="notice-deposit-date">Fecha del depósito <span>*</span></label><input id="notice-deposit-date" type="date" max="9999-12-31" required></div>
+            </div>
+          </fieldset>
+          <fieldset class="evidence-fieldset">
+            <legend>Dificultades</legend>
+            <div class="form-block-grid">
+              <div class="field"><label for="notice-difficulty">¿Se presentaron dificultades? <span>*</span></label><select id="notice-difficulty" required><option value="">Seleccione una opción</option><option value="no">No</option><option value="yes">Sí</option></select></div>
+              <div class="field full-width" id="notice-details-field" hidden><label for="notice-details">Describa las dificultades <span>*</span></label><textarea id="notice-details" rows="3" required disabled></textarea></div>
+            </div>
+          </fieldset>
+          <fieldset class="evidence-fieldset">
+            <legend>Anexos fotográficos</legend>
+            <p class="field-help" id="notice-photo-help">JPG, PNG o WebP de hasta 20 MB por foto. Cada anexo ocupará una página A4.</p>
+            <div class="form-block-grid">
+              <div class="field"><label for="notice-letter-photo">Anexo 1 · Carta firmada por quien recibió <span>*</span></label><input id="notice-letter-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="notice-photo-help" required></div>
+              <div class="field" id="notice-voucher-field" hidden><label for="notice-voucher-photo">Anexo 2 · Voucher del depósito <span>*</span></label><input id="notice-voucher-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="notice-photo-help" required disabled></div>
+            </div>
+          </fieldset>
+          <div class="form-footer"><p>Los datos y las fotografías se procesan en tu navegador.</p><button type="reset" class="button button-quiet">LIMPIAR FORMULARIO</button></div>
+        </form>
+      </section>
+      <section class="card report-card" aria-labelledby="notice-preview-title">
+        <div class="section-heading"><div class="section-title"><span class="step" aria-hidden="true">02</span><h2 id="notice-preview-title">INFORME GENERADO</h2></div></div>
+        <div class="report-workspace"><article id="notice-document" class="report-document" aria-label="Vista previa del informe de notificación"></article></div>
+        <div class="report-toolbar">
+          <p id="notice-status" role="status"></p>
+          <div class="actions">
+            <button type="button" class="button button-secondary" id="notice-print">IMPRIMIR INFORME</button>
+            <button type="submit" class="button button-primary" id="notice-pdf" form="notification-form">DESCARGAR PDF</button>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
   <div id="print-pages" class="print-pages" aria-hidden="true"></div>
   <div id="calendar" class="calendar" role="dialog" aria-label="Seleccionar fecha" hidden><div class="calendar-head"><button type="button" id="previous-month" aria-label="Mes anterior">‹</button><div class="calendar-selects"><select id="calendar-month" aria-label="Mes"></select><input id="calendar-year" type="number" aria-label="Año" min="1" max="9999" inputmode="numeric"></div><button type="button" id="next-month" aria-label="Mes siguiente">›</button></div><div class="weekdays" aria-hidden="true"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div><div id="calendar-days" class="calendar-days"></div><div class="calendar-footer"><button type="button" id="calendar-today">Hoy</button><button type="button" id="calendar-close">Cerrar</button></div></div>

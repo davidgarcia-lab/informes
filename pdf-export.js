@@ -59,6 +59,7 @@
   async function embedImage(pdf, image) {
     if (image.src.startsWith('data:image/jpeg;')) return pdf.embedJpg(image.src);
     if (image.src.startsWith('data:image/png;')) return pdf.embedPng(image.src);
+    await image.decode();
     const canvas = document.createElement('canvas');
     canvas.width = image.naturalWidth;
     canvas.height = image.naturalHeight;
