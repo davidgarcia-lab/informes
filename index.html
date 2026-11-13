@@ -142,8 +142,16 @@
             <div class="form-block-grid">
               <div class="field"><label for="notice-letter">Número de carta notificada <span>*</span></label><input id="notice-letter" required></div>
               <div class="field"><label for="notice-date">Fecha de notificación <span>*</span></label><input id="notice-date" type="date" max="9999-12-31" required></div>
-              <div class="field"><label for="notice-recipient">Nombres y apellidos de quien recibió <span>*</span></label><input id="notice-recipient" required></div>
-              <div class="field"><label for="notice-recipient-dni">DNI de quien recibió <span>*</span></label><input id="notice-recipient-dni" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required></div>
+              <div class="field"><label for="notice-recipient">Nombres y apellidos del destinatario <span>*</span></label><input id="notice-recipient" required></div>
+              <div class="field"><label for="notice-recipient-dni">DNI del destinatario <span>*</span></label><input id="notice-recipient-dni" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required></div>
+              <div class="field">
+                <label for="notice-delivery">Resultado de la entrega <span>*</span></label>
+                <select id="notice-delivery" required>
+                  <option value="signed">Recibió la carta y firmó el cargo</option>
+                  <option value="refused-signature">Recibió la carta y se negó a firmar el cargo</option>
+                  <option value="refused-letter">Se negó a recibir la carta</option>
+                </select>
+              </div>
               <div class="field">
                 <label for="notice-relationship">Parentesco con el exusuario fallecido <span>*</span></label>
                 <select id="notice-relationship" required>
@@ -188,6 +196,11 @@
             <div class="form-block-grid">
               <div class="field"><label for="notice-letter-photo">Anexo 1 · Carta firmada por quien recibió <span>*</span></label><input id="notice-letter-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="notice-photo-help" required></div>
               <div class="field" id="notice-voucher-field" hidden><label for="notice-voucher-photo">Anexo 2 · Voucher del depósito <span>*</span></label><input id="notice-voucher-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="notice-photo-help" required disabled></div>
+              <div class="field full-width" id="notice-extra-field" hidden>
+                <label for="notice-extra-photos">Fotografías adicionales de la diligencia (opcional)</label>
+                <input id="notice-extra-photos" type="file" accept="image/jpeg,image/png,image/webp" multiple aria-describedby="notice-extra-help" disabled>
+                <span id="notice-extra-help" class="field-help">Selecciona hasta seis fotos de una vez. Se numerarán desde el Anexo 3, una por página A4.</span>
+              </div>
             </div>
           </fieldset>
           <div class="form-footer"><p>Los datos y las fotografías se procesan en tu navegador.</p><button type="reset" class="button button-quiet">LIMPIAR FORMULARIO</button></div>

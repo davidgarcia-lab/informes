@@ -14,12 +14,33 @@
   let signatureRequest = 0;
   const annexes = [
     {input: field('letter-photo'), title: 'Anexo 1', description: 'Cargo de recepción de la carta firmada.'},
-    {input: field('voucher-photo'), title: 'Anexo 2', description: 'Comprobante de depósito de la devolución.'}
+    {input: field('voucher-photo'), title: 'Anexo 2', description: 'Comprobante de depósito de la devolución.'},
+    {input: field('extra-photos')}
   ];
   const currency = new Intl.NumberFormat('es-PE', {style: 'currency', currency: 'PEN'});
   const hasDeposit = () => field('case').value === 'deposit';
   const hasDifficulty = () => field('difficulty').value === 'yes';
-  const activeAnnexes = () => hasDeposit() ? annexes : annexes.slice(0, 1);
+  const hasRefusal = () => field('delivery').value !== 'signed';
+
+  function activeAnnexes() {
+    const [letter, voucher, extra] = annexes;
+    const active = [];
+    if (!hasRefusal() || letter.images?.length) {
+      active.push({
+        ...letter,
+        description: hasRefusal() ? 'Acta o constancia de la diligencia.' : letter.description
+      });
+    }
+    if (hasDeposit()) active.push(voucher);
+    if (hasRefusal()) {
+      (extra.images || []).forEach((image, index) => active.push({
+        title: 'Anexo ' + (index + 3),
+        description: 'Fotografía de la diligencia.',
+        images: [image]
+      }));
+    }
+    return active;
+  }
   const value = (name, placeholder) => field(name).value.trim() || '[' + placeholder + ']';
   const date = (name, placeholder) => value(name, placeholder).replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$3/$2/$1');
 
@@ -63,26 +84,38 @@
       subject: `INFORME DE NOTIFICACIÓN POR COBRO INDEBIDO DE SUBVENCIÓN ECONÓMICA – EXUSUARIO FALLECIDO ${deceased.toLocaleUpperCase('es-PE')}, DNI N.° ${deceasedDni}`,
       date: date('report-date', 'FECHA DEL INFORME')
     });
-    paragraph(`Me dirijo a usted para saludarlo cordialmente e informar sobre la notificación de la Carta N.° ${letter}, relacionada con el cobro indebido de la subvención económica del Programa Pensión 65, correspondiente al exusuario fallecido ${deceased}, identificado con DNI ${deceasedDni}.`);
-    paragraph(`Con fecha ${noticeDate}, se notificó la citada carta al Sr./Sra. ${recipient}, identificado(a) con DNI ${recipientDni}, ${relationshipText}, quien recibió el documento y firmó el cargo de recepción.`);
+    const refusedLetter = field('delivery').value === 'refused-letter';
+    const action = refusedLetter ? 'el intento de entrega' : 'la notificación';
+    paragraph(`Me dirijo a usted para saludarlo cordialmente e informar sobre ${action} de la Carta N.° ${letter}, relacionada con el cobro indebido de la subvención económica del Programa Pensión 65, correspondiente al exusuario fallecido ${deceased}, identificado con DNI ${deceasedDni}.`);
+    const person = `Sr./Sra. ${recipient}, identificado(a) con DNI ${recipientDni}, ${relationshipText}`;
+    if (refusedLetter) {
+      paragraph(`Con fecha ${noticeDate}, se intentó entregar la citada carta al ${person}, quien se negó a recibirla.`);
+    } else {
+      const result = hasRefusal() ? 'recibió el documento y se negó a firmar el cargo de recepción' : 'recibió el documento y firmó el cargo de recepción';
+      paragraph(`Con fecha ${noticeDate}, se notificó la citada carta al ${person}, quien ${result}.`);
+    }
 
     if (hasDeposit()) {
       const amount = field('amount');
       const formatted = amount.value && amount.validity.valid ? currency.format(amount.valueAsNumber) : 'S/ [MONTO DEL DEPÓSITO]';
-      paragraph(`Posteriormente, la persona notificada presentó el comprobante de depósito por ${formatted}, efectuado el ${date('deposit-date', 'FECHA DEL DEPÓSITO')}, correspondiente a la devolución del monto cobrado indebidamente.`);
+      paragraph(`Posteriormente, ${refusedLetter ? 'la persona a quien se intentó entregar la carta' : 'la persona notificada'} presentó el comprobante de depósito por ${formatted}, efectuado el ${date('deposit-date', 'FECHA DEL DEPÓSITO')}, correspondiente a la devolución del monto cobrado indebidamente.`);
     }
 
     if (hasDifficulty()) {
-      paragraph('Durante la diligencia se presentó la siguiente dificultad: ' + value('details', 'DESCRIPCIÓN DE LA DIFICULTAD'), 'report-facts');
+      const introduction = refusedLetter
+        ? 'Al respecto, se informa sobre las dificultades encontradas durante la diligencia: '
+        : 'Durante la diligencia se presentó la siguiente dificultad: ';
+      paragraph(introduction + value('details', 'DESCRIPCIÓN DE LA DIFICULTAD'), 'report-facts');
     } else if (field('difficulty').value === 'no') {
-      paragraph('Durante la diligencia no se presentaron dificultades.');
+      paragraph(hasRefusal() ? 'Durante la diligencia no se presentaron otras dificultades.' : 'Durante la diligencia no se presentaron dificultades.');
     }
 
-    paragraph('Se adjuntan los documentos de sustento:');
+    const includedAnnexes = activeAnnexes();
+    if (includedAnnexes.length) paragraph('Se adjuntan los documentos de sustento:');
     const annexList = document.createElement('ul');
     annexList.className = 'report-annex-list';
     annexList.setAttribute('role', 'list');
-    for (const {title, description} of activeAnnexes()) {
+    for (const {title, description} of includedAnnexes) {
       const item = document.createElement('li');
       // The PDF exporter reads text nodes, so the bullet must be part of the DOM.
       const bullet = document.createElement('span');
@@ -94,17 +127,19 @@
       item.append(bullet, label, ' ' + description);
       annexList.append(item);
     }
-    preview.append(annexList);
+    if (includedAnnexes.length) preview.append(annexList);
     paragraph('Es todo cuanto informo para su conocimiento y fines pertinentes.');
     window.P65ReportFormat.signoff(preview, value('promoter', 'NOMBRE DEL PROMOTOR'), signature);
 
-    for (const {image, title, description} of activeAnnexes()) {
+    for (const {images, title, description} of includedAnnexes) {
+      const image = images?.[0];
       if (!image) continue;
       const section = document.createElement('section');
       section.className = 'report-annex report-annex-full';
       const label = document.createElement('h3');
       label.textContent = title + ' · ' + description;
       const figure = document.createElement('figure');
+      image.alt = description;
       figure.append(image);
       section.append(label, figure);
       preview.append(section);
@@ -112,6 +147,17 @@
   }
 
   function update() {
+    const letter = annexes[0];
+    if (letter.input.required === hasRefusal()) {
+      letter.input.value = '';
+      letter.input.setCustomValidity('');
+      letter.images = [];
+    }
+    letter.input.required = !hasRefusal();
+    form.querySelector('label[for="notice-letter-photo"]').textContent = hasRefusal()
+      ? 'Anexo 1 · Acta o constancia de la diligencia (opcional)'
+      : 'Anexo 1 · Carta firmada por quien recibió *';
+    field('extra-field').hidden = field('extra-photos').disabled = !hasRefusal();
     signatureInput.disabled = !field('promoter').value;
     field('signature-preview-wrap').hidden = !signature;
     if (signature) field('signature-preview').src = signature;
@@ -192,35 +238,40 @@
 
   for (const annex of annexes) {
     annex.input.addEventListener('change', async () => {
-      const file = annex.input.files[0];
-      annex.image = null;
-      annex.input.setCustomValidity(file ? 'Espere a que termine de cargarse la imagen.' : '');
+      const selection = annex.input.files;
+      const files = Array.from(selection);
+      annex.images = [];
+      annex.input.setCustomValidity(files.length ? 'Espere a que termine de cargarse la imagen.' : '');
       update();
-      if (!file) return;
+      if (!files.length) return;
       try {
-        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 20 * 1024 * 1024) {
-          throw new Error('Seleccione una imagen JPG, PNG o WebP de hasta 20 MB.');
+        if (files.length > 6) throw new Error('Seleccione hasta seis fotografías adicionales.');
+        const images = [];
+        for (const file of files) {
+          if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 20 * 1024 * 1024) {
+            throw new Error('Seleccione una imagen JPG, PNG o WebP de hasta 20 MB.');
+          }
+          const image = new Image();
+          image.src = await readPhoto(file);
+          await image.decode();
+          if (annex.input.files !== selection) return;
+          const scale = Math.min(1, 2400 / Math.max(image.naturalWidth, image.naturalHeight));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+          const context = canvas.getContext('2d');
+          context.fillStyle = '#fff';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          image.src = canvas.toDataURL('image/jpeg', 0.92);
+          await image.decode();
+          if (annex.input.files !== selection) return;
+          images.push(image);
         }
-        const image = new Image();
-        image.src = await readPhoto(file);
-        await image.decode();
-        if (annex.input.files[0] !== file) return;
-        const scale = Math.min(1, 2400 / Math.max(image.naturalWidth, image.naturalHeight));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-        const context = canvas.getContext('2d');
-        context.fillStyle = '#fff';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        image.src = canvas.toDataURL('image/jpeg', 0.92);
-        await image.decode();
-        if (annex.input.files[0] !== file) return;
-        image.alt = annex.description;
-        annex.image = image;
+        annex.images = images;
         annex.input.setCustomValidity('');
       } catch (error) {
-        if (annex.input.files[0] !== file) return;
+        if (annex.input.files !== selection) return;
         const message = error.message?.startsWith('Seleccione') ? error.message : 'No se pudo leer la imagen. Seleccione otra foto.';
         annex.input.value = '';
         annex.input.setCustomValidity(message);
@@ -277,7 +328,7 @@
     clearSignature();
     for (const annex of annexes) {
       annex.input.setCustomValidity('');
-      annex.image = null;
+      annex.images = [];
     }
     field('status').textContent = '';
     queueMicrotask(update);
