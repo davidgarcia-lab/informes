@@ -95,7 +95,16 @@
   gap: 16px;
 }
 .form-block-grid input[type="file"] { height: auto; min-height: 41px; }
+.form-blocks { padding: 0 24px; }
+.form-blocks label > :is(input, select, textarea) { margin-top: 6px; }
+.third-checks { min-width: 0; }
+.form-blocks .third-checks input[type="checkbox"] {
+  width: auto;
+  height: auto;
+  margin: 0 4px 0 0;
+}
 @media (max-width: 580px) {
+  .form-blocks { padding: 0 16px; }
   #notification-form { padding: 0 16px; }
   .form-block-grid { grid-template-columns: minmax(0, 1fr); }
 }

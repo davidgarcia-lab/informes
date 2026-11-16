@@ -15,6 +15,7 @@
   <script src="pdf-export.js" defer></script>
   <script src="app.js" defer></script>
   <script src="notification.js" defer></script>
+  <script src="authorized-third.js" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -28,6 +29,7 @@
     <nav class="report-switch" aria-label="Tipo de informe">
       <button type="button" class="button button-secondary" id="show-affiliation" aria-controls="affiliation-panel" aria-pressed="true">Afiliación</button>
       <button type="button" class="button button-secondary" id="show-notification" aria-controls="notification-panel" aria-pressed="false">Notificación</button>
+      <button type="button" class="button button-secondary" id="show-third" aria-controls="third-panel" aria-pressed="false">Terceros autorizados</button>
     </nav>
     <div id="affiliation-panel">
     <p class="intro">Completa los datos de la visita y obtén tu informe listo para Word.</p>
@@ -150,7 +152,13 @@
                   <option value="signed">Recibió la carta y firmó el cargo</option>
                   <option value="refused-signature">Recibió la carta y se negó a firmar el cargo</option>
                   <option value="refused-letter">Se negó a recibir la carta</option>
+                  <option value="family-not-found">No se ubica a familiares de usuario</option>
+                  <option value="lived-alone">Exusuario vivía solo</option>
                 </select>
+              </div>
+              <div class="field full-width" id="notice-actions-field" hidden>
+                <label for="notice-actions">Acciones realizadas <span>*</span></label>
+                <textarea id="notice-actions" rows="3" required disabled></textarea>
               </div>
               <div class="field">
                 <label for="notice-relationship">Parentesco con el exusuario fallecido <span>*</span></label>
@@ -183,7 +191,7 @@
               <div class="field"><label for="notice-deposit-date">Fecha del depósito <span>*</span></label><input id="notice-deposit-date" type="date" max="9999-12-31" required></div>
             </div>
           </fieldset>
-          <fieldset class="evidence-fieldset">
+          <fieldset class="evidence-fieldset" id="notice-difficulty-section">
             <legend>Dificultades</legend>
             <div class="form-block-grid">
               <div class="field"><label for="notice-difficulty">¿Se presentaron dificultades? <span>*</span></label><select id="notice-difficulty" required><option value="">Seleccione una opción</option><option value="no">No</option><option value="yes">Sí</option></select></div>
@@ -214,6 +222,91 @@
           <div class="actions">
             <button type="button" class="button button-secondary" id="notice-print">IMPRIMIR INFORME</button>
             <button type="submit" class="button button-primary" id="notice-pdf" form="notification-form">DESCARGAR PDF</button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div id="third-panel" hidden>
+      <section class="card form-card" aria-labelledby="third-title">
+        <div class="section-heading"><h2 id="third-title">DATOS DEL INFORME DE TERCEROS AUTORIZADOS</h2></div>
+        <form id="third-form" class="form-blocks" autocomplete="off">
+          <fieldset class="evidence-fieldset">
+            <legend>Identificación del informe</legend>
+            <div class="form-block-grid">
+              <label>Responsable del informe<select name="responsible" required></select></label>
+              <label>Número de informe<input name="number"  required></label>
+              <label>Número de expediente<input name="file"  required></label>
+              <label>Fecha del informe<input name="date" type="date" required></label>
+              <div class="field full-width signature-field">
+                <label for="third-signature">Firma del promotor (opcional)</label>
+                <input id="third-signature" name="signature" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="third-signature-help third-signature-status" disabled>
+                <span id="third-signature-help" class="field-help">Seleccione al promotor y cargue una imagen PNG, JPG o WebP de hasta 2 MB.</span>
+                <span id="third-signature-status" class="field-help" role="status"></span>
+                <div id="third-signature-preview" class="signature-preview-wrap" hidden><img alt="Vista previa de la firma"><button id="third-signature-remove" type="button" class="button button-quiet">QUITAR FIRMA</button></div>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset class="evidence-fieldset">
+            <legend>Datos del usuario</legend>
+            <div class="form-block-grid">
+              <label>Nombre completo del usuario<input name="user"  required></label>
+              <label>DNI del usuario<input name="dni" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required></label>
+              <label>Edad<input name="age" type="number" min="0" step="1" required></label>
+            </div>
+          </fieldset>
+          <fieldset class="evidence-fieldset">
+            <legend>Visita domiciliaria</legend>
+            <div class="form-block-grid">
+              <label>Fecha de visita domiciliaria<input name="visit" type="date" required></label>
+              <label>Centro poblado<input name="settlement"  required></label>
+              <label>Distrito<input name="district"  required></label>
+              <label>Provincia<input name="province"  required></label>
+              <label>Dirección de la visita<input name="address"  required></label>
+            </div>
+          </fieldset>
+          <fieldset class="evidence-fieldset" id="third-person-section">
+            <legend>Datos de la persona propuesta</legend>
+            <div class="form-block-grid">
+              <label>Nombre completo de la persona propuesta<input name="person"  required></label>
+              <label>DNI de la persona propuesta<input name="personDni" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required></label>
+              <label>Parentesco o vínculo<select name="relation" required><option value="">Seleccione una opción</option><option value="hijo(a)">Hijo(a)</option><option value="cónyuge">Cónyuge</option><option value="conviviente">Conviviente</option><option value="hermano(a)">Hermano(a)</option><option value="otro">Otro vínculo</option></select></label>
+              <label id="third-relation-field" hidden>Especifique el vínculo<input name="otherRelation" required disabled></label>
+              <label>Domicilio de la persona propuesta<input name="home"  required></label>
+            </div>
+          </fieldset>
+          <fieldset class="evidence-fieldset">
+            <legend>Motivos para la designación</legend>
+            <label>Hechos observados durante la visita<textarea name="findings" rows="4" required placeholder="Describa lo observado durante la visita domiciliaria."></textarea></label>
+          </fieldset>
+          <fieldset class="evidence-fieldset">
+            <legend>Manifestación de voluntad</legend>
+            <div class="form-block-grid">
+              <label>¿El usuario expresó su voluntad de designar a una tercera persona?<select name="will" required><option value="">Seleccione una opción</option><option value="yes">Sí, expresó su voluntad</option><option value="no">No expresó su voluntad</option></select></label>
+              <label class="full-width">Observaciones sobre la voluntad<textarea name="observation" rows="3"></textarea></label>
+            </div>
+          </fieldset>
+          <fieldset class="evidence-fieldset">
+            <legend>Documentos adjuntos y evidencia</legend>
+            <div class="form-block-grid">
+              <div class="third-checks full-width" id="third-annex-checks"><label><input name="annex2" type="checkbox" required> Anexo 2 · Solicitud de designación de tercera persona autorizada</label><label><input name="annex3" type="checkbox" required> Anexo 3 · Declaración jurada con el compromiso de entrega íntegra y oportuna</label></div>
+              <label id="third-annex2-photos-field" hidden>Foto del Anexo 2 (opcional)<input name="annex2Photos" type="file" accept="image/jpeg,image/png,image/webp" disabled></label>
+              <label id="third-annex3-photos-field" hidden>Foto del Anexo 3 (opcional)<input name="annex3Photos" type="file" accept="image/jpeg,image/png,image/webp" disabled></label>
+              <label>¿Adjunta evidencia fotográfica?<select name="evidence" required><option value="">Seleccione una opción</option><option value="no">No</option><option value="yes">Sí</option></select></label>
+              <label id="third-photos-field" hidden>Fotos de la visita (hasta 6, JPG, PNG o WebP)<input name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple required disabled></label>
+            </div>
+          </fieldset>
+          <div class="form-footer"><button type="reset" class="button button-quiet">LIMPIAR FORMULARIO</button></div>
+        </form>
+      </section>
+      <section class="card report-card" aria-labelledby="third-preview-title">
+        <div class="section-heading"><h2 id="third-preview-title">INFORME GENERADO</h2></div>
+        <div class="report-workspace"><article id="third-document" class="report-document"></article></div>
+        <div class="report-toolbar">
+          <p id="third-status" role="status"></p>
+          <div class="actions">
+            <button type="button" id="third-copy" class="button button-secondary">COPIAR DATOS SELECCIONADOS</button>
+            <button type="button" id="third-print" class="button button-secondary">IMPRIMIR INFORME</button>
+            <button type="submit" id="third-pdf" class="button button-primary" form="third-form">DESCARGAR PDF</button>
           </div>
         </div>
       </section>

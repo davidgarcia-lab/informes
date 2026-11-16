@@ -21,6 +21,7 @@
   const hasDeposit = () => field('case').value === 'deposit';
   const hasDifficulty = () => field('difficulty').value === 'yes';
   const hasRefusal = () => field('delivery').value !== 'signed';
+  const hasNoRecipient = () => ['family-not-found', 'lived-alone'].includes(field('delivery').value);
 
   function activeAnnexes() {
     const [letter, voucher, extra] = annexes;
@@ -46,11 +47,12 @@
 
   field('promoter').replaceChildren(...Array.from(byId('promoter').options, option => option.cloneNode(true)));
 
-  for (const type of ['affiliation', 'notification']) {
-    byId('show-' + type).addEventListener('click', () => {
-      for (const option of ['affiliation', 'notification']) {
-        byId(option + '-panel').hidden = option !== type;
-        byId('show-' + option).setAttribute('aria-pressed', String(option === type));
+  const reportButtons = Array.from(document.querySelectorAll('.report-switch button[aria-controls]'));
+  for (const button of reportButtons) {
+    button.addEventListener('click', () => {
+      for (const option of reportButtons) {
+        byId(option.getAttribute('aria-controls')).hidden = option !== button;
+        option.setAttribute('aria-pressed', String(option === button));
       }
       pages.replaceChildren();
     });
@@ -85,10 +87,14 @@
       date: date('report-date', 'FECHA DEL INFORME')
     });
     const refusedLetter = field('delivery').value === 'refused-letter';
-    const action = refusedLetter ? 'el intento de entrega' : 'la notificación';
+    const action = refusedLetter || hasNoRecipient() ? 'la diligencia para entregar' : 'la notificación';
     paragraph(`Me dirijo a usted para saludarlo cordialmente e informar sobre ${action} de la Carta N.° ${letter}, relacionada con el cobro indebido de la subvención económica del Programa Pensión 65, correspondiente al exusuario fallecido ${deceased}, identificado con DNI ${deceasedDni}.`);
     const person = `Sr./Sra. ${recipient}, identificado(a) con DNI ${recipientDni}, ${relationshipText}`;
-    if (refusedLetter) {
+    if (field('delivery').value === 'family-not-found') {
+      paragraph(`Con fecha ${noticeDate}, se realizó la diligencia de notificación de la citada carta; sin embargo, no fue posible efectuar su entrega debido a que no se logró ubicar a los familiares del exusuario fallecido. Ante esta situación, se realizaron las siguientes acciones:\n${value('actions', 'ACCIONES REALIZADAS')}`, 'report-facts');
+    } else if (field('delivery').value === 'lived-alone') {
+      paragraph(`Con fecha ${noticeDate}, se realizó la diligencia de notificación de la citada carta; sin embargo, se constató que el exusuario fallecido vivía solo y no se logró ubicar a una persona a quien efectuar la entrega del documento. Ante esta situación, se realizaron las siguientes acciones:\n${value('actions', 'ACCIONES REALIZADAS')}`, 'report-facts');
+    } else if (refusedLetter) {
       paragraph(`Con fecha ${noticeDate}, se intentó entregar la citada carta al ${person}, quien se negó a recibirla.`);
     } else {
       const result = hasRefusal() ? 'recibió el documento y se negó a firmar el cargo de recepción' : 'recibió el documento y firmó el cargo de recepción';
@@ -101,12 +107,12 @@
       paragraph(`Posteriormente, ${refusedLetter ? 'la persona a quien se intentó entregar la carta' : 'la persona notificada'} presentó el comprobante de depósito por ${formatted}, efectuado el ${date('deposit-date', 'FECHA DEL DEPÓSITO')}, correspondiente a la devolución del monto cobrado indebidamente.`);
     }
 
-    if (hasDifficulty()) {
+    if (!hasNoRecipient() && hasDifficulty()) {
       const introduction = refusedLetter
         ? 'Al respecto, se informa sobre las dificultades encontradas durante la diligencia: '
         : 'Durante la diligencia se presentó la siguiente dificultad: ';
       paragraph(introduction + value('details', 'DESCRIPCIÓN DE LA DIFICULTAD'), 'report-facts');
-    } else if (field('difficulty').value === 'no') {
+    } else if (!hasNoRecipient() && field('difficulty').value === 'no') {
       paragraph(hasRefusal() ? 'Durante la diligencia no se presentaron otras dificultades.' : 'Durante la diligencia no se presentaron dificultades.');
     }
 
@@ -147,6 +153,19 @@
   }
 
   function update() {
+    const noRecipient = hasNoRecipient();
+    field('difficulty-section').hidden = field('difficulty-section').disabled = noRecipient;
+    field('actions-field').hidden = field('actions').disabled = !noRecipient;
+    for (const name of ['recipient', 'recipient-dni', 'relationship']) {
+      const control = field(name);
+      control.closest('.field').hidden = control.disabled = noRecipient;
+    }
+    const depositOption = field('case').querySelector('option[value="deposit"]');
+    depositOption.disabled = noRecipient;
+    if (noRecipient) field('case').value = 'notice';
+    field('case').options[0].textContent = noRecipient ? 'Diligencia sin entrega' : 'Solo notificación';
+    const dateLabel = form.querySelector('label[for="notice-date"]');
+    dateLabel.firstChild.data = noRecipient ? 'Fecha de la diligencia ' : 'Fecha de notificación ';
     const letter = annexes[0];
     if (letter.input.required === hasRefusal()) {
       letter.input.value = '';
